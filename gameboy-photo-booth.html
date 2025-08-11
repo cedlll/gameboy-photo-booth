@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Boy Photo Booth</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(45deg, #2c1810, #3d2317);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+        }
+
+        .gameboy {
+            width: 320px;
+            height: 500px;
+            background: linear-gradient(135deg, #f5f1e8, #e8e4d6);
+            border-radius: 15px 15px 50px 15px;
+            position: relative;
+            box-shadow: 
+                0 10px 20px rgba(0,0,0,0.4),
+                inset 0 1px 3px rgba(255,255,255,0.3),
+                inset 0 -1px 3px rgba(0,0,0,0.1);
+            border: 2px solid #d4d0c3;
+        }
+
+        .nintendo-label {
+            position: absolute;
+            top: 18px;
+            left: 25px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #4a4a4a;
+            letter-spacing: 0.5px;
+        }
+
+        .gameboy-label {
+            position: absolute;
+            top: 32px;
+            left: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 1px;
+        }
+
+        .screen-bezel {
+            width: 190px;
+            height: 170px;
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-radius: 8px;
+            position: absolute;
+            top: 65px;
+            left: 65px;
+            padding: 15px;
+            box-shadow: 
+                inset 0 3px 8px rgba(0,0,0,0.8),
+                0 2px 4px rgba(255,255,255,0.1);
+            border: 1px solid #0a0a0a;
+        }
+
+        .screen {
+            width: 160px;
+            height: 140px;
+            background: #9bbc0f;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: #0f380f;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #7a9c0e;
+        }
+
+        #video, #canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #canvas { 
+            display: none;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        #video {
+            transform: scaleX(-1); /* Mirror the video like a selfie camera */
+            background: #9bbc0f; /* Same as screen background */
+        }
+
+        /* Make sure video is visible when shown */
+        #video:not(.hidden) {
+            display: block !important;
+            z-index: 10;
+        }
+
+        #canvas:not(.hidden) {
+            display: block !important;
+            z-index: 10;
+        }
+
+        .screen-power-light {
+            position: absolute;
+            top: 45px;
+            right: 25px;
+            width: 8px;
+            height: 8px;
+            background: #ff4444;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(255, 68, 68, 0.8);
+        }
+
+        .power-label {
+            position: absolute;
+            top: 45px;
+            right: 40px;
+            font-size: 8px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .speaker {
+            position: absolute;
+            top: 25px;
+            right: 45px;
+            width: 45px;
+            height: 25px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2px;
+        }
+
+        .speaker-line {
+            height: 1px;
+            background: #333;
+            margin: 0.5px 0;
+        }
+
+        .dpad {
+            position: absolute;
+            bottom: 140px;
+            left: 65px;
+            width: 65px;
+            height: 65px;
+        }
+
+        .dpad-center {
+            position: absolute;
+            top: 22px;
+            left: 22px;
+            width: 21px;
+            height: 21px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .dpad-up, .dpad-down {
+            position: absolute;
+            left: 27px;
+            width: 11px;
+            height: 17px;
+            background: #1a1a1a;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .dpad-up { 
+            top: 5px; 
+            border-radius: 3px 3px 0 0; 
+        }
+        
+        .dpad-down { 
+            bottom: 5px; 
+            border-radius: 0 0 3px 3px; 
+        }
+
+        .dpad-left, .dpad-right {
+            position: absolute;
+            top: 27px;
+            width: 17px;
+            height: 11px;
+            background: #1a1a1a;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .dpad-left { 
+            left: 5px; 
+            border-radius: 3px 0 0 3px; 
+        }
+        
+        .dpad-right { 
+            right: 5px; 
+            border-radius: 0 3px 3px 0; 
+        }
+
+        .ab-buttons {
+            position: absolute;
+            bottom: 140px;
+            right: 65px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .a-button, .b-button {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dc143c, #b01030);
+            border: 3px solid #8b0f26;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 
+                0 4px 8px rgba(0,0,0,0.4),
+                inset 0 1px 2px rgba(255,255,255,0.3);
+            transition: all 0.1s ease;
+        }
+
+        .a-button:active, .b-button:active {
+            transform: translateY(2px);
+            box-shadow: 
+                0 2px 4px rgba(0,0,0,0.4),
+                inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .button-label {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .select-start {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .select-btn, .start-btn {
+            width: 30px;
+            height: 10px;
+            background: linear-gradient(135deg, #666, #555);
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid #444;
+            box-shadow: 
+                0 2px 3px rgba(0,0,0,0.3),
+                inset 0 1px 1px rgba(255,255,255,0.2);
+            transition: all 0.1s ease;
+        }
+
+        .select-btn:active, .start-btn:active {
+            background: linear-gradient(135deg, #444, #333);
+            transform: translateY(1px);
+        }
+
+        .select-start .button-label {
+            bottom: -15px;
+            font-size: 7px;
+        }
+
+        .screen-text {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.3;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .hidden { 
+            display: none !important; 
+        }
+
+        .speaker-grille {
+            position: absolute;
+            top: 28px;
+            right: 20px;
+            width: 50px;
+            height: 20px;
+        }
+
+        .grille-line {
+            width: 100%;
+            height: 1px;
+            background: #2a2a2a;
+            margin: 1px 0;
+        }
+
+        .bottom-label {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 8px;
+            color: #888;
+            text-align: center;
+        }
+
+        .photo-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: pixelated;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .blinking {
+            animation: blink 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="gameboy">
+        <div class="nintendo-label">Nintendo</div>
+        <div class="gameboy-label">GAME BOY™</div>
+        <div class="screen-power-light" id="power-light"></div>
+        <div class="power-label">●BATTERY</div>
+        
+        <div class="speaker-grille">
+            <div class="grille-line"></div>
+            <div class="grille-line"></div>
+            <div class="grille-line"></div>
+            <div class="grille-line"></div>
+            <div class="grille-line"></div>
+            <div class="grille-line"></div>
+        </div>
+        
+        <div class="screen-bezel">
+            <div class="screen" id="screen">
+                <div id="start-screen" class="screen-text">
+                    GAME BOY<br>
+                    CAMERA<br><br>
+                    <span class="blinking">PRESS START</span>
+                </div>
+                <div id="camera-ready" class="screen-text hidden">
+                    LIVE PREVIEW<br><br>
+                    A: CAPTURE<br>
+                    START: EXIT
+                </div>
+                <video id="video" class="hidden" autoplay muted playsinline></video>
+                <canvas id="canvas" width="160" height="140"></canvas>
+                <div id="photo-screen" class="hidden">
+                    <img id="photo-preview" class="photo-preview hidden" />
+                    <div class="screen-text" id="photo-text">
+                        PHOTO SAVED!<br><br>
+                        B: DOWNLOAD<br>
+                        START: NEW
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dpad">
+            <div class="dpad-up"></div>
+            <div class="dpad-down"></div>
+            <div class="dpad-left"></div>
+            <div class="dpad-right"></div>
+            <div class="dpad-center"></div>
+        </div>
+
+        <div class="ab-buttons">
+            <div class="a-button" id="a-btn">
+                <div class="button-label">A</div>
+            </div>
+            <div class="b-button" id="b-btn">
+                <div class="button-label">B</div>
+            </div>
+        </div>
+
+        <div class="select-start">
+            <div class="select-btn" id="select-btn">
+                <div class="button-label">SELECT</div>
+            </div>
+            <div class="start-btn" id="start-btn">
+                <div class="button-label">START</div>
+            </div>
+        </div>
+
+        <div class="bottom-label">
+            DOT MATRIX WITH STEREO SOUND
+        </div>
+    </div>
+
+    <script>
+        class GameBoyCamera {
+            constructor() {
+                this.mode = 'start';
+                this.stream = null;
+                this.currentPhoto = null;
+                this.filterActive = false;
+                this.init();
+            }
+
+            init() {
+                document.getElementById('start-btn').onclick = () => this.handleStart();
+                document.getElementById('a-btn').onclick = () => this.handleA();
+                document.getElementById('b-btn').onclick = () => this.handleB();
+                
+                // Add keyboard support
+                document.addEventListener('keydown', (e) => {
+                    switch(e.code) {
+                        case 'Enter': this.handleStart(); break;
+                        case 'Space': this.handleA(); break;
+                        case 'KeyB': this.handleB(); break;
+                    }
+                });
+            }
+
+            async handleStart() {
+                if (this.mode === 'start') {
+                    await this.startCamera();
+                } else if (this.mode === 'photo') {
+                    this.resetToCamera();
+                } else if (this.mode === 'camera') {
+                    this.resetToStart();
+                }
+            }
+
+            async startCamera() {
+                try {
+                    console.log('Requesting camera access...');
+                    
+                    // Request camera with optimal settings
+                    this.stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: { ideal: 320 },
+                            height: { ideal: 240 },
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    console.log('Camera access granted, setting up video...');
+                    
+                    const video = document.getElementById('video');
+                    video.srcObject = this.stream;
+                    
+                    // Hide start screen immediately
+                    this.hideElement('start-screen');
+                    this.hideElement('camera-ready');
+                    this.mode = 'camera';
+                    
+                    // Update power light to show camera is active
+                    document.getElementById('power-light').style.background = '#44ff44';
+                    
+                    // Wait for video to be ready and start playing
+                    const startVideo = () => {
+                        video.play().then(() => {
+                            console.log('Video playing! Dimensions:', video.videoWidth, 'x', video.videoHeight);
+                            
+                            // Show the raw video first so user sees themselves immediately
+                            this.showElement('video');
+                            this.hideElement('canvas');
+                            console.log('Raw video should now be visible');
+                            
+                            // Start the Game Boy filter after a brief moment
+                            setTimeout(() => {
+                                console.log('Starting Game Boy filter...');
+                                this.startFilterLoop();
+                            }, 1000);
+                            
+                        }).catch(err => {
+                            console.error('Video play error:', err);
+                            this.showCameraError('PLAYBACK ERROR');
+                        });
+                    };
+                    
+                    if (video.readyState >= 2) {
+                        // Video is already loaded
+                        startVideo();
+                    } else {
+                        // Wait for video to load
+                        video.addEventListener('loadeddata', startVideo);
+                        video.addEventListener('canplay', startVideo);
+                    }
+                    
+                    // Add error handling
+                    video.addEventListener('error', (e) => {
+                        console.error('Video error:', e);
+                        this.showCameraError('VIDEO ERROR');
+                    });
+                    
+                } catch (err) {
+                    console.error('Camera error:', err);
+                    let errorMsg = 'CAMERA ERROR!';
+                    if (err.name === 'NotAllowedError') {
+                        errorMsg = 'PERMISSION<br>DENIED!<br><br>ALLOW CAMERA<br>ACCESS';
+                    } else if (err.name === 'NotFoundError') {
+                        errorMsg = 'NO CAMERA<br>FOUND!';
+                    }
+                    this.showCameraError(errorMsg);
+                }
+            }
+
+            showCameraError(message) {
+                document.getElementById('start-screen').innerHTML = 
+                    `<div class="screen-text">${message}<br><br>REFRESH PAGE<br>TO RETRY</div>`;
+            }
+
+            startFilterLoop() {
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                console.log('Starting filter loop...');
+                
+                let filterStarted = false;
+                
+                const loop = () => {
+                    if (this.mode === 'camera' && video.videoWidth > 0 && video.videoHeight > 0) {
+                        // Clear canvas
+                        ctx.clearRect(0, 0, 160, 140);
+                        
+                        // Draw video frame (mirrored for selfie effect)
+                        ctx.save();
+                        ctx.scale(-1, 1);
+                        ctx.translate(-160, 0);
+                        ctx.drawImage(video, 0, 0, 160, 140);
+                        ctx.restore();
+                        
+                        // Apply Game Boy filter
+                        this.applyGameBoyFilter(ctx);
+                        
+                        // Switch to showing filtered canvas
+                        this.hideElement('video');
+                        this.showElement('canvas');
+                        
+                        if (!filterStarted) {
+                            console.log('Switched to filtered view');
+                            filterStarted = true;
+                            this.showLivePreviewInstructions();
+                        }
+                    }
+                    
+                    if (this.mode === 'camera') {
+                        requestAnimationFrame(loop);
+                    }
+                };
+                
+                requestAnimationFrame(loop);
+            }
+
+            showLivePreviewInstructions() {
+                // Briefly overlay instructions on the live preview
+                const instructionsDiv = document.createElement('div');
+                instructionsDiv.id = 'live-instructions';
+                instructionsDiv.className = 'screen-text';
+                instructionsDiv.style.position = 'absolute';
+                instructionsDiv.style.bottom = '10px';
+                instructionsDiv.style.left = '50%';
+                instructionsDiv.style.transform = 'translateX(-50%)';
+                instructionsDiv.style.background = 'rgba(155, 188, 15, 0.8)';
+                instructionsDiv.style.padding = '2px 4px';
+                instructionsDiv.style.fontSize = '8px';
+                instructionsDiv.style.borderRadius = '2px';
+                instructionsDiv.innerHTML = 'A: CAPTURE';
+                
+                const screen = document.getElementById('screen');
+                screen.appendChild(instructionsDiv);
+                
+                // Remove instructions after 3 seconds
+                setTimeout(() => {
+                    if (document.getElementById('live-instructions')) {
+                        screen.removeChild(instructionsDiv);
+                    }
+                }, 3000);
+            }
+
+            handleA() {
+                if (this.mode === 'camera') {
+                    this.capturePhoto();
+                }
+            }
+
+            handleB() {
+                if (this.mode === 'photo') {
+                    this.downloadPhoto();
+                }
+            }
+
+            capturePhoto() {
+                console.log('Capturing photo...');
+                
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Flash effect
+                const screen = document.getElementById('screen');
+                screen.style.background = '#ffffff';
+                setTimeout(() => {
+                    screen.style.background = '#9bbc0f';
+                }, 150);
+                
+                // Capture current frame from video with Game Boy filter
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    // Clear canvas
+                    ctx.clearRect(0, 0, 160, 140);
+                    
+                    // Draw video frame (mirrored)
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.translate(-160, 0);
+                    ctx.drawImage(video, 0, 0, 160, 140);
+                    ctx.restore();
+                    
+                    // Apply Game Boy filter to the captured frame
+                    this.applyGameBoyFilter(ctx);
+                    
+                    // Save the filtered photo
+                    this.currentPhoto = canvas.toDataURL('image/png');
+                    console.log('Photo captured successfully');
+                    
+                    // Show the captured photo
+                    const photoPreview = document.getElementById('photo-preview');
+                    photoPreview.src = this.currentPhoto;
+                    
+                    // Switch to photo view
+                    this.hideElement('video');
+                    this.hideElement('canvas');
+                    this.showElement('photo-screen');
+                    this.showElement('photo-preview');
+                    this.hideElement('photo-text');
+                    
+                    this.mode = 'photo';
+                    
+                    // Show download instructions after showing the photo
+                    setTimeout(() => {
+                        this.hideElement('photo-preview');
+                        this.showElement('photo-text');
+                    }, 2000);
+                } else {
+                    console.error('Video not ready for capture');
+                }
+            }
+
+            resetToCamera() {
+                this.hideElement('photo-screen');
+                this.hideElement('photo-preview');
+                this.hideElement('photo-text');
+                this.mode = 'camera';
+                this.startFilterLoop();
+            }
+
+            resetToStart() {
+                // Stop camera stream
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
+                this.hideElement('canvas');
+                this.hideElement('video');
+                this.hideElement('photo-screen');
+                this.showElement('start-screen');
+                
+                // Reset start screen
+                document.getElementById('start-screen').innerHTML = 
+                    'GAME BOY<br>CAMERA<br><br><span class="blinking">PRESS START</span>';
+                
+                // Reset power light
+                document.getElementById('power-light').style.background = '#ff4444';
+                
+                this.mode = 'start';
+                this.filterActive = false;
+            }
+
+            applyGameBoyFilter(ctx) {
+                const imageData = ctx.getImageData(0, 0, 160, 140);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    // Convert to grayscale using luminance formula
+                    const gray = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+                    
+                    // Map to Game Boy 4-color palette
+                    const color = this.getGameBoyColor(gray);
+                    
+                    data[i] = color.r;     // Red
+                    data[i + 1] = color.g; // Green
+                    data[i + 2] = color.b; // Blue
+                    // Alpha remains unchanged
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Add scanline effect for authenticity
+                this.addScanlines(ctx);
+            }
+
+            getGameBoyColor(gray) {
+                // Original Game Boy 4-shade green palette
+                if (gray < 64) return { r: 15, g: 56, b: 15 };      // Darkest green
+                if (gray < 128) return { r: 48, g: 98, b: 48 };     // Dark green
+                if (gray < 192) return { r: 139, g: 172, b: 15 };   // Light green
+                return { r: 155, g: 188, b: 15 };                   // Lightest green
+            }
+
+            addScanlines(ctx) {
+                ctx.globalAlpha = 0.1;
+                ctx.fillStyle = '#000000';
+                
+                // Draw horizontal scanlines
+                for (let y = 0; y < 140; y += 2) {
+                    ctx.fillRect(0, y, 160, 1);
+                }
+                
+                ctx.globalAlpha = 1.0;
+            }
+
+            downloadPhoto() {
+                if (this.currentPhoto) {
+                    const link = document.createElement('a');
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    link.download = `gameboy-photo-${timestamp}.png`;
+                    link.href = this.currentPhoto;
+                    
+                    // Temporarily add to DOM, click, and remove
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Visual feedback
+                    const photoText = document.getElementById('photo-text');
+                    photoText.innerHTML = 'DOWNLOADING...<br><br>B: DOWNLOAD<br>START: NEW';
+                    setTimeout(() => {
+                        photoText.innerHTML = 'PHOTO SAVED!<br><br>B: DOWNLOAD<br>START: NEW';
+                    }, 1000);
+                }
+            }
+
+            showElement(id) {
+                const element = document.getElementById(id);
+                element.classList.remove('hidden');
+                console.log(`Showing element: ${id}, classes:`, element.classList.toString());
+            }
+
+            hideElement(id) {
+                const element = document.getElementById(id);
+                element.classList.add('hidden');
+                console.log(`Hiding element: ${id}, classes:`, element.classList.toString());
+            }
+        }
+
+        // Initialize the Game Boy Camera when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            const app = new GameBoyCamera();
+            
+            // Add some visual feedback for button presses
+            document.querySelectorAll('.a-button, .b-button, .start-btn, .select-btn').forEach(button => {
+                button.addEventListener('mousedown', () => {
+                    button.style.transform = 'translateY(2px)';
+                });
+                
+                button.addEventListener('mouseup', () => {
+                    setTimeout(() => {
+                        button.style.transform = '';
+                    }, 100);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -11,9 +11,17 @@
             background: linear-gradient(45deg, #2c1810, #3d2317);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             font-family: 'Courier New', monospace;
+            gap: 40px;
+        }
+
+        .main-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 40px;
+            margin-top: 20px;
         }
 
         .gameboy {
@@ -334,10 +342,104 @@
         .blinking {
             animation: blink 1s infinite;
         }
+
+        /* Countdown Timer Styles */
+        .countdown {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 56, 15, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #9bbc0f;
+            z-index: 100;
+        }
+
+        /* Photo Gallery Styles */
+        .photo-gallery {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .gallery-header {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .gallery-count {
+            text-align: center;
+            color: #ccc;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .gallery-photo {
+            width: 80px;
+            height: 72px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .gallery-photo:hover {
+            transform: scale(1.05);
+            border-color: #9bbc0f;
+        }
+
+        .gallery-empty {
+            text-align: center;
+            color: #888;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .clear-gallery {
+            margin-top: 15px;
+            width: 100%;
+            padding: 8px;
+            background: rgba(220, 20, 60, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s ease;
+        }
+
+        .clear-gallery:hover {
+            background: rgba(220, 20, 60, 1);
+        }
+
+        .clear-gallery:disabled {
+            background: rgba(128, 128, 128, 0.5);
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
-    <div class="gameboy">
+    <div class="main-container">
+        <div class="gameboy">
         <div class="nintendo-label">Nintendo</div>
         <div class="gameboy-label">GAME BOY™</div>
         <div class="screen-power-light" id="power-light"></div>
@@ -406,6 +508,20 @@
         <div class="bottom-label">
             DOT MATRIX WITH STEREO SOUND
         </div>
+        </div>
+
+        <div class="photo-gallery">
+            <div class="gallery-header">📸 Photo Gallery</div>
+            <div class="gallery-count" id="gallery-count">0 photos taken</div>
+            <div class="gallery-grid" id="gallery-grid">
+                <div class="gallery-empty" id="gallery-empty">
+                    Take some photos to see them here!
+                </div>
+            </div>
+            <button class="clear-gallery" id="clear-gallery" disabled>
+                Clear All Photos
+            </button>
+        </div>
     </div>
 
     <script>
@@ -415,6 +531,8 @@
                 this.stream = null;
                 this.currentPhoto = null;
                 this.filterActive = false;
+                this.photoGallery = [];
+                this.countdownTimer = null;
                 this.init();
             }
 
@@ -422,6 +540,7 @@
                 document.getElementById('start-btn').onclick = () => this.handleStart();
                 document.getElementById('a-btn').onclick = () => this.handleA();
                 document.getElementById('b-btn').onclick = () => this.handleB();
+                document.getElementById('clear-gallery').onclick = () => this.clearGallery();
                 
                 // Add keyboard support
                 document.addEventListener('keydown', (e) => {
@@ -594,7 +713,7 @@
 
             handleA() {
                 if (this.mode === 'camera') {
-                    this.capturePhoto();
+                    this.startCountdown();
                 }
             }
 
@@ -602,6 +721,33 @@
                 if (this.mode === 'photo') {
                     this.downloadPhoto();
                 }
+            }
+
+            startCountdown() {
+                if (this.countdownTimer) return; // Prevent multiple countdowns
+                
+                console.log('Starting countdown...');
+                
+                // Create countdown overlay
+                const countdownDiv = document.createElement('div');
+                countdownDiv.className = 'countdown';
+                countdownDiv.id = 'countdown';
+                document.getElementById('screen').appendChild(countdownDiv);
+                
+                let count = 3;
+                countdownDiv.textContent = count;
+                
+                this.countdownTimer = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownDiv.textContent = count;
+                    } else {
+                        // Remove countdown and take photo
+                        document.getElementById('screen').removeChild(countdownDiv);
+                        this.countdownTimer = null;
+                        this.capturePhoto();
+                    }
+                }, 1000);
             }
 
             capturePhoto() {
@@ -636,6 +782,9 @@
                     // Save the filtered photo
                     this.currentPhoto = canvas.toDataURL('image/png');
                     console.log('Photo captured successfully');
+                    
+                    // Add to gallery
+                    this.addToGallery(this.currentPhoto);
                     
                     // Show the captured photo
                     const photoPreview = document.getElementById('photo-preview');
@@ -752,6 +901,71 @@
                     setTimeout(() => {
                         photoText.innerHTML = 'PHOTO SAVED!<br><br>B: DOWNLOAD<br>START: NEW';
                     }, 1000);
+                }
+            }
+
+            addToGallery(photoData) {
+                const timestamp = new Date();
+                const photo = {
+                    data: photoData,
+                    timestamp: timestamp,
+                    id: 'photo_' + Date.now()
+                };
+                
+                this.photoGallery.unshift(photo); // Add to beginning of array
+                this.updateGalleryDisplay();
+            }
+
+            updateGalleryDisplay() {
+                const galleryGrid = document.getElementById('gallery-grid');
+                const galleryCount = document.getElementById('gallery-count');
+                const galleryEmpty = document.getElementById('gallery-empty');
+                const clearButton = document.getElementById('clear-gallery');
+                
+                // Update count
+                const count = this.photoGallery.length;
+                galleryCount.textContent = `${count} photo${count !== 1 ? 's' : ''} taken`;
+                
+                if (count === 0) {
+                    galleryEmpty.style.display = 'block';
+                    clearButton.disabled = true;
+                } else {
+                    galleryEmpty.style.display = 'none';
+                    clearButton.disabled = false;
+                    
+                    // Clear existing photos
+                    const existingPhotos = galleryGrid.querySelectorAll('.gallery-photo');
+                    existingPhotos.forEach(photo => photo.remove());
+                    
+                    // Add all photos
+                    this.photoGallery.forEach(photo => {
+                        const img = document.createElement('img');
+                        img.className = 'gallery-photo';
+                        img.src = photo.data;
+                        img.title = `Taken on ${photo.timestamp.toLocaleString()}`;
+                        img.onclick = () => this.downloadGalleryPhoto(photo);
+                        galleryGrid.appendChild(img);
+                    });
+                }
+            }
+
+            downloadGalleryPhoto(photo) {
+                const link = document.createElement('a');
+                const timestamp = photo.timestamp.toISOString().replace(/[:.]/g, '-');
+                link.download = `gameboy-photo-${timestamp}.png`;
+                link.href = photo.data;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            clearGallery() {
+                if (this.photoGallery.length === 0) return;
+                
+                if (confirm(`Delete all ${this.photoGallery.length} photos? This cannot be undone.`)) {
+                    this.photoGallery = [];
+                    this.updateGalleryDisplay();
                 }
             }
 

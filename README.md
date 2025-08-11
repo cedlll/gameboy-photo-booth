@@ -16,14 +16,22 @@ A fully functional retro photo booth that captures your photos with an authentic
 - **Live camera preview** with real-time Game Boy filter
 - **4-color monochrome palette** matching original Game Boy screen
 - **Selfie-style mirroring** for natural positioning
+- **3-second countdown timer** before photo capture
 - **Flash effect** when taking photos (white screen flash)
 - **High-quality photo capture** with retro filtering applied
 
 ### 🎮 Interactive Controls
 - **START Button**: Activate camera / Return to camera mode
-- **A Button**: Capture photo with flash effect
+- **A Button**: Start 3-second countdown and capture photo
 - **B Button**: Download your retro photo
 - **Keyboard Support**: Enter (START), Space (A), B key (B)
+
+### 🖼️ Photo Gallery
+- **Real-time gallery** showing all captured photos outside the Game Boy
+- **Click any photo** to download it individually
+- **Timestamp tracking** for each photo taken
+- **Clear all photos** button with confirmation
+- **Photo counter** showing total photos taken
 
 ### 🖥️ Technical Features
 - **Single HTML file** - no external dependencies
@@ -53,10 +61,10 @@ Click the **START** button. Your browser will request camera permission - click 
 You'll immediately see yourself in the Game Boy screen! After 1 second, the authentic green filter kicks in.
 
 ### Step 4: Capture Photo
-Press the **A button** (or spacebar) to take your photo. You'll see a camera flash effect!
+Press the **A button** (or spacebar) to start the 3-second countdown. Get ready for your pose as the timer counts down: 3... 2... 1... *flash*!
 
-### Step 5: Download
-Press the **B button** to download your retro Game Boy photo with timestamp filename.
+### Step 5: View & Download
+Your photo appears in the **Photo Gallery** to the right of the Game Boy! Click any photo to download it, or press the **B button** to download the most recent one.
 
 ## 🔧 Browser Compatibility
 
